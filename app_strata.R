@@ -189,8 +189,3 @@ server <- function(input, output) {
 ############################## CALL SHINYAPP TO RENDER APP ############################################
 
 shinyApp(ui = ui, server = server)
-
-############################# PUBLISH APP IN THE SHINY APP ############################################
-
-# library(rsconnect)
-# rsconnect::deployApp('C:\\Users\\Stats\\Desktop\\Alvaro\\App-Costanal')
