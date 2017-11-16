@@ -3,6 +3,7 @@ library(ggplot2)
 library(plotly)
 library(partitions)
 library(combinat)
+library(parallel)
 
 # The code has to have three main parts: 
 #   -UI (how the user sees the app)
@@ -58,21 +59,23 @@ RMSE_fn <- function(nvector) {
 }
 
 Perm_fn <- function(nnn) {
-  ntxy <- restrictedparts(n = nnn,
+  nijk <- restrictedparts(n = nnn,
                           m = 8,
                           include.zero = FALSE)
-  ntxy_diff <- apply(X = ntxy, MARGIN = 2, FUN = permn)
-  ntxy_mat <- lapply(ntxy_diff, FUN = rbind.data.frame)
-  n_p <- apply(
-    X = ntxy,
-    MARGIN = 2,
-    FUN = function(x) {
-      permut <- permn(x)
-      permut2 <- do.call(rbind.data.frame, permut)
-      colnames(permut2) <- c("n000","n100","n010","n110","n001","n101","n011","n111")
-      unique(permut2)
-    }
+  
+  cl<-makeCluster(detectCores()-1)
+  clusterExport(cl,c("nijk", "permn"),envi=environment())
+  
+  n_p <- parApply(cl = cl,X = nijk,MARGIN = 2,FUN = function(x) {
+    permut <- permn(x)
+    permut2 <- do.call(rbind.data.frame, permut)
+    colnames(permut2) <- c("n000","n100","n010","n110","n001","n101","n011","n111")
+    unique(permut2)
+  }
   )
+  
+  stopCluster(cl)
+  
   do.call(rbind.data.frame, n_p)
 }
 
