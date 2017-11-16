@@ -61,8 +61,6 @@ Perm_fn <- function(nnn) {
   ntxy <- restrictedparts(n = nnn,
                           m = 8,
                           include.zero = FALSE)
-  ntxy_diff <- apply(X = ntxy, MARGIN = 2, FUN = permn)
-  ntxy_mat <- lapply(ntxy_diff, FUN = rbind.data.frame)
   n_p <- apply(
     X = ntxy,
     MARGIN = 2,

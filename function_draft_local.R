@@ -9,8 +9,6 @@ Perm_fn <- function(nnn) {
   nijk <- restrictedparts(n = nnn,
                           m = 8,
                           include.zero = FALSE)
-  nijk_diff <- apply(X = nijk, MARGIN = 2, FUN = permn)
-  nijk_mat <- lapply(nijk_diff, FUN = rbind.data.frame)
   n_p <- apply(
     X = nijk,
     MARGIN = 2,
