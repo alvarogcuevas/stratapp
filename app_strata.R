@@ -62,7 +62,7 @@ Perm_fn <- function(nnn) {
   nijk <- restrictedparts(n = nnn,
                           m = 8,
                           include.zero = FALSE)
-  
+ 
   cl<-makeCluster(8)
   clusterExport(cl,c("nijk", "permn"),envi=environment())
   
@@ -72,6 +72,7 @@ Perm_fn <- function(nnn) {
     colnames(permut2) <- c("n000","n100","n010","n110","n001","n101","n011","n111")
     unique(permut2)
   }
+
   )
   
   stopCluster(cl)

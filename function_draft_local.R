@@ -9,7 +9,7 @@ Perm_fn <- function(nnn) {
   nijk <- restrictedparts(n = nnn,
                           m = 8,
                           include.zero = FALSE)
-  
+
   cl<-makeCluster(detectCores()-1)
   clusterExport(cl,c("nijk", "permn"),envi=environment())
   
@@ -22,7 +22,7 @@ Perm_fn <- function(nnn) {
     )
   
   stopCluster(cl)
-  
+
   do.call(rbind.data.frame, n_p)
 }
 
