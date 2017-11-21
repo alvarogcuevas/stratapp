@@ -116,7 +116,8 @@ ui <- fluidPage(
                              min=1,max=10,value = 5),
                  sliderInput("n111", 
                              label = "n_111",
-                             min=1,max=10,value = 5)
+                             min=1,max=10,value = 5),
+                 actionButton("go", "Go")
                ),
                mainPanel(
                  verbatimTextOutput("graph_header"),
@@ -132,7 +133,8 @@ ui <- fluidPage(
                sidebarPanel(
                  sliderInput("nn", 
                              label = "N",
-                             min=1,max=20,value = 10)
+                             min=8,max=20,value = 10),
+                 actionButton("go2", "Go")
                ),
                mainPanel(
                  verbatimTextOutput("no_cores"),
@@ -150,9 +152,13 @@ ui <- fluidPage(
 
 server <- function(input, output) {
   
+  reac_dataset<-eventReactive(input$go2,{
+    Perm_fn(input$nn)
+  })
+  
   output$heatmap_N<-renderPlotly({
     #Generate the dataset
-    dataset <- Perm_fn(input$nn)
+    dataset <- reac_dataset()
     perm_lis<-apply(X = dataset,MARGIN = 1,FUN = RMSE_fn)
     perm_lis2<-do.call(rbind.data.frame,perm_lis)
     df<-cbind(dataset,perm_lis2)
@@ -163,8 +169,12 @@ server <- function(input, output) {
     ggplotly(ll)
   })
   
+  reac_nijk<-eventReactive(input$go,{
+    c(input$n000,input$n100,input$n010,input$n110,input$n001,input$n101,input$n011,input$n111)
+  })
+  
   output$dotmap<-renderPlotly({
-    values<-c(input$n000,input$n100,input$n010,input$n110,input$n001,input$n101,input$n011,input$n111)
+    values<-reac_nijk()
     df<-as.data.frame(c(values,RMSE_fn(values)))
     colnames(df)<-c("n000","n100","n010","n110","n001","n101","n011","n111","bias","sd","rmse")
     
