@@ -63,7 +63,7 @@ Perm_fn <- function(nnn) {
                           m = 8,
                           include.zero = FALSE)
   
-  cl<-makeCluster(detectCores()-1)
+  cl<-makeCluster(8)
   clusterExport(cl,c("nijk", "permn"),envi=environment())
   
   n_p <- parApply(cl = cl,X = nijk,MARGIN = 2,FUN = function(x) {
@@ -119,9 +119,7 @@ ui <- fluidPage(
                ),
                mainPanel(
                  verbatimTextOutput("graph_header"),
-                 plotlyOutput("dotmap")#,
-                 #plotlyOutput("rmse_bar")
-                 
+                 plotlyOutput("dotmap")
                )
              )
     ),
@@ -133,9 +131,10 @@ ui <- fluidPage(
                sidebarPanel(
                  sliderInput("nn", 
                              label = "N",
-                             min=1,max=30,value = 12)
+                             min=1,max=20,value = 10)
                ),
-               mainPanel( 
+               mainPanel(
+                 verbatimTextOutput("no_cores"),
                  plotlyOutput("heatmap_N")
                )
              )
@@ -168,21 +167,20 @@ server <- function(input, output) {
     df<-as.data.frame(c(values,RMSE_fn(values)))
     colnames(df)<-c("n000","n100","n010","n110","n001","n101","n011","n111","bias","sd","rmse")
     
-    x_axis<-seq(from=df$bias-0.2,to=df$bias+0.2,by=0.01)
-    y_axis<-seq(from=df$sd-0.2,to=df$sd+0.2,by=0.01)
-    df_background<-expand.grid(bias=x_axis,sd=y_axis)
-    df_background$rmse<-sqrt(df_background$bias^2+df_background$sd^2)
-    
     ll<-ggplot()+
-      geom_raster(data=df_background,aes(x=bias,y=sd,fill=rmse))+
-      scale_fill_gradientn(colours = rev(heat.colors(5)))+
-      geom_point(data=df,aes(x = bias, y = sd,z=rmse))
+      geom_point(data=df,aes(x = bias, y = sd,z=rmse))+
+      xlim(-1,1)+
+      ylim(0,0.6)
     ggplotly(ll)
   })
   
   output$graph_header<-renderText({
     values<-c(input$n000,input$n100,input$n010,input$n110,input$n001,input$n101,input$n011,input$n111)
     paste("The sample size is N=",sum(values))
+  })
+  
+  output$no_cores<-renderText({
+    paste("The number of available cores is",detectCores())
   })
   
 }
