@@ -163,15 +163,10 @@ server <- function(input, output) {
     df<-as.data.frame(c(values,RMSE_fn(values)))
     colnames(df)<-c("n000","n100","n010","n110","n001","n101","n011","n111","bias","sd","rmse")
     
-    x_axis<-seq(from=df$bias-0.2,to=df$bias+0.2,by=0.01)
-    y_axis<-seq(from=df$sd-0.2,to=df$sd+0.2,by=0.01)
-    df_background<-expand.grid(bias=x_axis,sd=y_axis)
-    df_background$rmse<-sqrt(df_background$bias^2+df_background$sd^2)
-    
     ll<-ggplot()+
-      geom_raster(data=df_background,aes(x=bias,y=sd,fill=rmse))+
-      scale_fill_gradientn(colours = rev(heat.colors(5)))+
-      geom_point(data=df,aes(x = bias, y = sd,z=rmse))
+      geom_point(data=df,aes(x = bias, y = sd,z=rmse))+
+      xlim(-1,1)+
+      ylim(0,0.6)
     ggplotly(ll)
   })
   
