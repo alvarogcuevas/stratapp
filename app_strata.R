@@ -3,6 +3,7 @@ library(ggplot2)
 library(plotly)
 library(partitions)
 library(combinat)
+library(parallel)
 
 # The code has to have three main parts: 
 #   -UI (how the user sees the app)
@@ -58,19 +59,24 @@ RMSE_fn <- function(nvector) {
 }
 
 Perm_fn <- function(nnn) {
-  ntxy <- restrictedparts(n = nnn,
+  nijk <- restrictedparts(n = nnn,
                           m = 8,
                           include.zero = FALSE)
-  n_p <- apply(
-    X = ntxy,
-    MARGIN = 2,
-    FUN = function(x) {
-      permut <- permn(x)
-      permut2 <- do.call(rbind.data.frame, permut)
-      colnames(permut2) <- c("n000","n100","n010","n110","n001","n101","n011","n111")
-      unique(permut2)
-    }
+ 
+  cl<-makeCluster(8)
+  clusterExport(cl,c("nijk", "permn"),envi=environment())
+  
+  n_p <- parApply(cl = cl,X = nijk,MARGIN = 2,FUN = function(x) {
+    permut <- permn(x)
+    permut2 <- do.call(rbind.data.frame, permut)
+    colnames(permut2) <- c("n000","n100","n010","n110","n001","n101","n011","n111")
+    unique(permut2)
+  }
+
   )
+  
+  stopCluster(cl)
+  
   do.call(rbind.data.frame, n_p)
 }
 
@@ -114,9 +120,7 @@ ui <- fluidPage(
                ),
                mainPanel(
                  verbatimTextOutput("graph_header"),
-                 plotlyOutput("dotmap")#,
-                 #plotlyOutput("rmse_bar")
-                 
+                 plotlyOutput("dotmap")
                )
              )
     ),
@@ -128,9 +132,10 @@ ui <- fluidPage(
                sidebarPanel(
                  sliderInput("nn", 
                              label = "N",
-                             min=1,max=30,value = 12)
+                             min=1,max=20,value = 10)
                ),
-               mainPanel( 
+               mainPanel(
+                 verbatimTextOutput("no_cores"),
                  plotlyOutput("heatmap_N")
                )
              )
@@ -173,6 +178,10 @@ server <- function(input, output) {
   output$graph_header<-renderText({
     values<-c(input$n000,input$n100,input$n010,input$n110,input$n001,input$n101,input$n011,input$n111)
     paste("The sample size is N=",sum(values))
+  })
+  
+  output$no_cores<-renderText({
+    paste("The number of available cores is",detectCores())
   })
   
 }
