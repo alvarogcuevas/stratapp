@@ -5,10 +5,23 @@ library(partitions)
 library(combinat)
 library(parallel)
 
-# The code has to have three main parts: 
+########################################
+# Shiny app for MSE analysis of strata #
+########################################
+
+# Every Shiny app has to have three main parts: 
 #   -UI (how the user sees the app)
 #   -server(the logic statements R needs to produce the output)
 #   -call to the function shinyApp() (to launch the app)
+
+###############################################################
+# Additional functions #
+########################
+ 
+# RMSE_fn does the following:
+#   -gets a vector of n_{ijk} values, 
+#   -places them in a three-dimensional matrix and 
+#   -calculates the bias and variance components of the rmse
 
 RMSE_fn <- function(nvector) {
   
@@ -58,6 +71,11 @@ RMSE_fn <- function(nvector) {
   
 }
 
+# Perm_fn does the following:
+#   -gets an integer,
+#   -obtains all the partitions of said integer (excluding 0),
+#   -in a parallel setting, it obtains all the permutations of each partition
+
 Perm_fn <- function(nnn) {
   nijk <- restrictedparts(n = nnn,
                           m = 8,
@@ -89,6 +107,7 @@ ui <- fluidPage(
   tabsetPanel(
     
     ##### FIRST TAB 
+    # -Enter all the n_{ijk} to obtain a single dot
     tabPanel("n_txy input",
              h2("n_txy as an input"),
              sidebarLayout(
@@ -127,6 +146,8 @@ ui <- fluidPage(
     ),
     
     ##### SECOND TAB 
+    # -Enter a single integer to obtain a heat map with all the permutations 
+    #  of the partions of that integer
     tabPanel("N input",
              h2("N as an input"),
              sidebarLayout(
@@ -149,35 +170,51 @@ ui <- fluidPage(
 #################################### SERVER #############################
 
 # server is always a function of two list-type arguments: input and output
-
 server <- function(input, output) {
   
+  #The dataset used in output$heatmap_n will be updated each time a new integer is entered
   reac_dataset<-eventReactive(input$go2,{
     Perm_fn(input$nn)
   })
   
+  #This is a heatmap of rmse for the permutations of partitions of a given integer
   output$heatmap_N<-renderPlotly({
+    
     #Generate the dataset
     dataset <- reac_dataset()
+    
+    #Compute bias and variance for each permutation
     perm_lis<-apply(X = dataset,MARGIN = 1,FUN = RMSE_fn)
+    
+    #Turn the list into a data.frame
     perm_lis2<-do.call(rbind.data.frame,perm_lis)
+    
+    #Attach each permutation to its (bias,variance)
     df<-cbind(dataset,perm_lis2)
-
+    
+    #Plot the interactive heatmap
     ll <- ggplot(data = df, aes(x = bias, y = sd,n000=n000,n100=n100,n010=n010,n110=n110,n001=n001,n101=n101,n011=n011,n111=n111)) +
       geom_point(aes(colour=rmse))+
       scale_colour_gradient(low = "green",high="red")
     ggplotly(ll)
   })
   
+  #The dataset used in output$dotmap is updated each time one of the n_{ijk} is changed
   reac_nijk<-eventReactive(input$go,{
     c(input$n000,input$n100,input$n010,input$n110,input$n001,input$n101,input$n011,input$n111)
   })
   
+  #This is a single point plot for a single case of n_{ijk}
   output$dotmap<-renderPlotly({
+    
+    #Update the dataset
     values<-reac_nijk()
+    
+    #Calculate the (bias,variance) for this specific case
     df<-as.data.frame(c(values,RMSE_fn(values)))
     colnames(df)<-c("n000","n100","n010","n110","n001","n101","n011","n111","bias","sd","rmse")
     
+    #Generate the interactive plot
     ll<-ggplot()+
       geom_point(data=df,aes(x = bias, y = sd,z=rmse))+
       xlim(-1,1)+
@@ -185,11 +222,14 @@ server <- function(input, output) {
     ggplotly(ll)
   })
   
+  
+  #For the single case, this shows the sum of n_{ijk}
   output$graph_header<-renderText({
     values<-c(input$n000,input$n100,input$n010,input$n110,input$n001,input$n101,input$n011,input$n111)
     paste("The sample size is N=",sum(values))
   })
   
+  #Small detail that shows how many available cores for parallel computing
   output$no_cores<-renderText({
     paste("The number of available cores is",detectCores())
   })
