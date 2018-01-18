@@ -9,23 +9,40 @@ Perm_fn <- function(nnn) {
   nijk <- restrictedparts(n = nnn,
                           m = 8,
                           include.zero = T)
-
-  cl<-makeCluster(detectCores()-1)
-  clusterExport(cl,c("nijk", "permn"),envi=environment())
   
-    n_p <- parApply(cl = cl,X = nijk,MARGIN = 2,FUN = function(x) {
-        permut <- permn(x)
-        permut2 <- do.call(rbind.data.frame, permut)
-        colnames(permut2) <- c("n000","n100","n010","n110","n001","n101","n011","n111")
-        unique(permut2)
-      }
-    )
+  cl <- makeCluster(detectCores() - 1)
+  clusterExport(cl, c("nijk", "permn"), envi = environment())
+  
+  n_p <- parApply(
+    cl = cl,
+    X = nijk,
+    MARGIN = 2,
+    FUN = function(x) {
+      permut <- permn(x)
+      permut2 <- do.call(rbind.data.frame, permut)
+      colnames(permut2) <-
+        c("n000",
+          "n100",
+          "n010",
+          "n110",
+          "n001",
+          "n101",
+          "n011",
+          "n111")
+      unique(permut2)
+    }
+  )
   
   stopCluster(cl)
-
-  before_forbidden<-do.call(rbind.data.frame, n_p)
- 
-  before_forbidden
+  
+  before_forbidden <- do.call(rbind.data.frame, n_p)
+  subset(
+    before_forbidden,
+    !(n100 == 0 & n101 == 0) &
+      !(n111 == 0 & n110 == 0) &
+      !(n001 == 0 & n000 == 0) &
+      !(n011 == 0 & n010 == 0)
+  )
 }
 
 RMSE_fn <- function(nvector) {
@@ -76,7 +93,7 @@ RMSE_fn <- function(nvector) {
 }
 
 start_time <- Sys.time()
-prueba <- Perm_fn(20)
+prueba <- Perm_fn(15)
 lista <- apply(X = prueba, MARGIN = 1, FUN = RMSE_fn)
 lista2 <- do.call(rbind.data.frame, lista)
 df <- cbind(prueba, lista2)
@@ -95,6 +112,8 @@ ll <- ggplot(data = df, aes(x = bias, y = sd,n000=n000,n100=n100,n010=n010,n110=
 ggplotly(ll)
 
 
+mm<- ll+geom_density2d()
+mm
 
 values <- rep(5, 8)
 df <- as.data.frame(c(values, RMSE_fn(values)))
@@ -130,27 +149,31 @@ mm <- ggplot() +
   geom_bar(data = df, aes(rmse))
 mm
 
-
 # Double checking that the numbers add up when excluding the forbidden cases:
 
 prueba<-Perm_fn(9)
 #6435
+#11440
 
 prueba2<-subset(prueba,(n100==0 & n101==0))
 #1287
+#2002
 
-# prueba3<-subset(prueba,!(n100==0 & n101==0))
-# #6435-1287=5148
+prueba3<-subset(prueba,!(n100==0 & n101==0))
+#6435-1287=5148
+#11440-2002=9438
 
 prueba4<-subset(prueba,(n111==0 & n110==0))
 #1287
+#2002
 
 prueba5<-subset(prueba,(n100==0 & n101==0 & n111==0 & n110==0))
 #165
+#220
 
 prueba6<-subset(prueba,!(n100==0 & n101==0) & !(n111==0 & n110==0))
 #4026
-
+#7656
 
 
 
