@@ -8,7 +8,7 @@ library(parallel)
 Perm_fn <- function(nnn) {
   nijk <- restrictedparts(n = nnn,
                           m = 8,
-                          include.zero = FALSE)
+                          include.zero = T)
 
   cl<-makeCluster(detectCores()-1)
   clusterExport(cl,c("nijk", "permn"),envi=environment())
@@ -23,7 +23,9 @@ Perm_fn <- function(nnn) {
   
   stopCluster(cl)
 
-  do.call(rbind.data.frame, n_p)
+  before_forbidden<-do.call(rbind.data.frame, n_p)
+ 
+  before_forbidden
 }
 
 RMSE_fn <- function(nvector) {
@@ -128,6 +130,28 @@ mm <- ggplot() +
   geom_bar(data = df, aes(rmse))
 mm
 
-#This is a change I want to make to my branch
+
+# Double checking that the numbers add up when excluding the forbidden cases:
+
+prueba<-Perm_fn(9)
+#6435
+
+prueba2<-subset(prueba,(n100==0 & n101==0))
+#1287
+
+# prueba3<-subset(prueba,!(n100==0 & n101==0))
+# #6435-1287=5148
+
+prueba4<-subset(prueba,(n111==0 & n110==0))
+#1287
+
+prueba5<-subset(prueba,(n100==0 & n101==0 & n111==0 & n110==0))
+#165
+
+prueba6<-subset(prueba,!(n100==0 & n101==0) & !(n111==0 & n110==0))
+#4026
+
+
+
 
 

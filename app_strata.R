@@ -73,29 +73,48 @@ RMSE_fn <- function(nvector) {
 
 # Perm_fn does the following:
 #   -gets an integer,
-#   -obtains all the partitions of said integer (excluding 0),
+#   -obtains all the partitions of said integer,
 #   -in a parallel setting, it obtains all the permutations of each partition
+#   -deletes cases where n_{ijk}=0 would make a problem in the denominator when calculating the RMSE
 
 Perm_fn <- function(nnn) {
   nijk <- restrictedparts(n = nnn,
                           m = 8,
-                          include.zero = FALSE)
- 
-  cl<-makeCluster(8)
-  clusterExport(cl,c("nijk", "permn"),envi=environment())
+                          include.zero = T)
   
-  n_p <- parApply(cl = cl,X = nijk,MARGIN = 2,FUN = function(x) {
-    permut <- permn(x)
-    permut2 <- do.call(rbind.data.frame, permut)
-    colnames(permut2) <- c("n000","n100","n010","n110","n001","n101","n011","n111")
-    unique(permut2)
-  }
-
+  cl <- makeCluster(detectCores() - 1)
+  clusterExport(cl, c("nijk", "permn"), envi = environment())
+  
+  n_p <- parApply(
+    cl = cl,
+    X = nijk,
+    MARGIN = 2,
+    FUN = function(x) {
+      permut <- permn(x)
+      permut2 <- do.call(rbind.data.frame, permut)
+      colnames(permut2) <-
+        c("n000",
+          "n100",
+          "n010",
+          "n110",
+          "n001",
+          "n101",
+          "n011",
+          "n111")
+      unique(permut2)
+    }
   )
   
   stopCluster(cl)
   
-  do.call(rbind.data.frame, n_p)
+  before_forbidden <- do.call(rbind.data.frame, n_p)
+  subset(
+    before_forbidden,
+    !(n100 == 0 & n101 == 0) &
+      !(n111 == 0 & n110 == 0) &
+      !(n001 == 0 & n000 == 0) &
+      !(n011 == 0 & n010 == 0)
+  )
 }
 
 ############################## UI ########################
@@ -195,7 +214,9 @@ server <- function(input, output) {
     #Plot the interactive heatmap
     ll <- ggplot(data = df, aes(x = bias, y = sd,n000=n000,n100=n100,n010=n010,n110=n110,n001=n001,n101=n101,n011=n011,n111=n111)) +
       geom_point(aes(colour=rmse))+
-      scale_colour_gradient(low = "green",high="red")
+      scale_colour_gradient(low = "green",high="red")+
+      geom_density2d()
+    
     ggplotly(ll)
   })
   
